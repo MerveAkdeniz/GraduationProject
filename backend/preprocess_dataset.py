@@ -5,8 +5,8 @@ from sklearn.model_selection import train_test_split
 # Datasetin yolu
 train_dataset_path = "train.csv"
 
-# Dataseti yükleyin
-train_data = pd.read_csv(train_dataset_path)
+# Dataseti yükleyin (UTF-8 kodlamasıyla)
+train_data = pd.read_csv(train_dataset_path, encoding='utf-8')
 
 # Gereksiz sütunları kaldırın
 train_data = train_data[['Sentence', 'Label']]  # Sadece gerekli sütunları tutuyoruz

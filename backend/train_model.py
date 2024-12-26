@@ -8,9 +8,9 @@ import joblib
 train_dataset_path = "train.csv"
 test_dataset_path = "test.csv"
 
-# Datasetleri yükleyin
-train_data = pd.read_csv(train_dataset_path)
-test_data = pd.read_csv(test_dataset_path)
+# Datasetleri yükleyin (UTF-8 kodlamasıyla)
+train_data = pd.read_csv(train_dataset_path, encoding='utf-8')
+test_data = pd.read_csv(test_dataset_path, encoding='utf-8')
 
 # Gereksiz sütunları kaldırın
 train_data = train_data[['Sentence', 'Label']]  # 'Label' doğru sütun adı

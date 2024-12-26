@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import joblib
+import json  # JSON modülü eklendi
 
 app = Flask(__name__)
 
@@ -22,7 +23,13 @@ def analyze():
         text_vectorized = vectorizer.transform([text.lower()])  # Küçük harfe çevirme
         prediction = model.predict(text_vectorized)[0]  # Tahmini alıyoruz
 
-        return jsonify({'emotion': prediction})  # Yanıtı JSON formatında döndürüyoruz
+        # Yanıtı JSON formatında döndürüyoruz
+        response = {'emotion': prediction}
+        return app.response_class(
+            response=json.dumps(response, ensure_ascii=False),  # ensure_ascii=False eklendi
+            status=200,
+            mimetype='application/json'
+        )
     except Exception as e:
         return jsonify({'error': str(e)}), 500  # Hata durumunda mesaj döndür
 
