@@ -1,15 +1,11 @@
 from flask import Flask, request, jsonify
 import joblib
-import os
 
 app = Flask(__name__)
 
-# Model yükleme (model dosyanızın yolunu belirtin)
-model_path = "model.joblib"  # Eğitilmiş model dosyanız
-if os.path.exists(model_path):
-    model = joblib.load(model_path)
-else:
-    model = None  # Model yüklenemezse bir hata döneceğiz
+# Model ve vektörleştiriciyi yükleme
+model = joblib.load("model.joblib")  # Eğittiğimiz modeli yüklüyoruz
+vectorizer = joblib.load("vectorizer.joblib")  # Vektörleştiriciyi yüklüyoruz
 
 @app.route('/')
 def home():
@@ -17,18 +13,18 @@ def home():
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
-    if not model:
-        return jsonify({'error': 'Model yüklenemedi.'}), 500
-    
-    data = request.json
-    text = data.get('text', '')
+    try:
+        # Kullanıcıdan gelen JSON verisini alıyoruz
+        data = request.json
+        text = data.get('text', '')
 
-    if not text:
-        return jsonify({'error': 'Metin eksik!'}), 400
-    
-    # Model tahmini
-    prediction = model.predict([text])[0]
-    return jsonify({'emotion': prediction})
+        # Metni vektörleştirip modelle tahmin yapıyoruz
+        text_vectorized = vectorizer.transform([text.lower()])  # Küçük harfe çevirme
+        prediction = model.predict(text_vectorized)[0]  # Tahmini alıyoruz
+
+        return jsonify({'emotion': prediction})  # Yanıtı JSON formatında döndürüyoruz
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500  # Hata durumunda mesaj döndür
 
 if __name__ == '__main__':
     app.run(debug=True)

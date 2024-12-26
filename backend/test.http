@@ -2,5 +2,5 @@ POST http://127.0.0.1:5000/analyze
 Content-Type: application/json
 
 {
-  "text": "Bugün çok mutluyum!"
+  "text": "Bal mısın yoksa mal mısın diye sormuştum halbuki"
 }
