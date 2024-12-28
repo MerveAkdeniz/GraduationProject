@@ -1,12 +1,12 @@
 import React from 'react';
 import { SafeAreaView, Text, StyleSheet } from 'react-native';
-import { i18n } from 'C:/graduation project/GraduationProject/frontend/AppEmotify/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/core/i18n/i18n.js';
 
 function App(): React.JSX.Element {
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.text}>{i18n.t('welcome')}</Text> {/* Türkçe çeviri kullanımı */}
-      <Text style={styles.text}>{i18n.t('hello')}</Text>   {/* Diğer çeviri kullanımı */}
+      {/* Açılış ekranında basit bir hoşgeldiniz mesajı */}
+      <Text style={styles.text}>Hoşgeldiniz</Text>
+      <Text style={styles.subtext}>ben merveeeee</Text>
     </SafeAreaView>
   );
 }
@@ -16,12 +16,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#583269',
   },
   text: {
-    fontSize: 20,
-    margin: 10,
+    fontSize: 30,
+    fontWeight: 'bold',
     color: '#333',
+    marginBottom: 10,
+  },
+  subtext: {
+    fontSize: 18,
+    color: '#666',
   },
 });
 
