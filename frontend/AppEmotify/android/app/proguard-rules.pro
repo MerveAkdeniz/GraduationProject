@@ -8,3 +8,22 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # Add any project specific keep options here:
+# Kullanılmayan kodları kaldır
+-dontwarn
+-keep public class * {
+    public protected *;
+}
+-keepclassmembers class * {
+    public *;
+}
+# AndroidX Kütüphaneleri
+-keep class androidx.** { *; }
+-dontwarn androidx.**
+# React Native
+-keep class com.facebook.react.** { *; }
+-keep class com.facebook.hermes.** { *; }
+-keepclassmembers class * {
+    native <methods>;
+}
+-dontwarn com.facebook.react.**
+-dontwarn com.facebook.hermes.**

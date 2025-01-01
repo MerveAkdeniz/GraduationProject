@@ -1,0 +1,24 @@
+# Minimum CMake sürümünü belirtiyoruz
+cmake_minimum_required(VERSION 3.22.1)
+
+# Projenizin adını belirtiyoruz
+project("AppEmotify")
+
+# Kütüphaneyi oluşturuyoruz
+add_library(
+    mylibrary # Kütüphane adı
+    SHARED # Paylaşılan kütüphane (shared library)
+    ./native-lib.cpp # Kaynak dosyası
+)
+
+# Android log kütüphanesini dahil ediyoruz
+find_library(
+    log-lib
+    log
+)
+
+# Kütüphaneyi gerekli bağımlılıklarla ilişkilendiriyoruz
+target_link_libraries(
+    mylibrary
+    ${log-lib}
+)
