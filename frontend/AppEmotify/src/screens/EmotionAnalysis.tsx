@@ -1,83 +1,148 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+import AudioRecorderPlayer from 'react-native-audio-recorder-player';
+
+const audioRecorderPlayer = new AudioRecorderPlayer();
 
 const EmotionAnalysis = () => {
-    return (
-        <View style={styles.container}>
-        {/* Logo veya Başlık */}
-        <Text style={styles.title}>Emotify</Text>
-  
-        {/* Alt Başlık */}
-        <Text style={styles.subtitle}>Yapay zeka destekli duygu analizi</Text>
-  
-        {/* Mikrofon Simgesi */}
-        <TouchableOpacity style={styles.microphoneContainer}>
-          <Image
-            source={require('../assets/microphone.png')} // Mikrofon görselini burada belirtin
-            style={styles.microphoneIcon}
-          />
-        </TouchableOpacity>
-  
-        {/* Açıklama Metni */}
-        <View style={styles.instructionContainer}>
-          <Text style={styles.instructionText}>
-            Duygu analizi için mikrofon düğmesine basılı tutarak konuşma kaydedin.
-          </Text>
-          <Text style={styles.instructionText}>
-            İşiniz bittiğinde, düğmeyi serbest bırakın.
-          </Text>
-        </View>
-      </View>
-    );
+  const [isRecording, setIsRecording] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
+
+  const startRecording = async () => {
+    try {
+      const result = await audioRecorderPlayer.startRecorder();
+      setIsRecording(true);
+      console.log('Recording started: ', result);
+    } catch (error) {
+      console.error('Error starting recorder: ', error);
+      Alert.alert('Hata', 'Kayda başlanamadı.');
+    }
+  };
+
+  const stopRecording = async () => {
+    try {
+      const result = await audioRecorderPlayer.stopRecorder();
+      audioRecorderPlayer.removeRecordBackListener();
+      setIsRecording(false);
+      console.log('Recording stopped: ', result);
+      if (result) {
+        await uploadAudio(result);
+      }
+    } catch (error) {
+      console.error('Error stopping recorder: ', error);
+      Alert.alert('Hata', 'Kaydı durdururken bir hata oluştu.');
+    }
+  };
+
+  const uploadAudio = async (audioUri: string) => {
+    try {
+      setIsUploading(true);
+
+      const formData = new FormData();
+      formData.append('file', {
+        uri: audioUri,
+        name: 'audio.mp3',
+        type: 'audio/mpeg',
+      } as any); // `as any` kullanımı `append` hatasını çözer
+
+      const response = await fetch('http://10.0.2.2:5000/analyze-audio', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        body: formData,
+      });
+
+      const result = await response.json();
+      console.log('Backend Yanıtı: ', result);
+      if (response.ok) {
+        setUploadStatus('Ses dosyası başarıyla yüklendi ve analiz edildi.');
+      } else {
+        setUploadStatus('Ses yükleme hatası: ' + result.message || 'Bilinmeyen bir hata oluştu.');
+      }
+    } catch (error) {
+      console.error('Upload error: ', error);
+      setUploadStatus('Ses yükleme hatası: ' + (error as Error).message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Emotify</Text>
+      <Text style={styles.subtitle}>Yapay zeka destekli duygu analizi</Text>
+
+      <TouchableOpacity
+        style={[styles.button, isRecording ? styles.buttonRecording : null]}
+        onPressIn={startRecording}
+        onPressOut={stopRecording}
+      >
+        {isRecording ? (
+          <ActivityIndicator size="large" color="#FFFFFF" />
+        ) : (
+          <Text style={styles.buttonText}>Kaydı Başlat</Text>
+        )}
+      </TouchableOpacity>
+
+      {isUploading ? (
+        <ActivityIndicator size="large" color="#007BFF" />
+      ) : (
+        <Text style={styles.statusText}>{uploadStatus}</Text>
+      )}
+    </View>
+  );
 };
+
 const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: '#FFFFFF',
-    },
-    title: {
-      fontSize: 36,
-      fontWeight: 'bold',
-      fontFamily: 'Cursive', // Özel font kullanmak isterseniz font yüklemeniz gerekir
-      color: '#000000',
-      marginBottom: 10,
-    },
-    subtitle: {
-      fontSize: 16,
-      color: '#555555',
-      marginBottom: 40,
-    },
-    microphoneContainer: {
-      width: 150,
-      height: 150,
-      borderRadius: 75,
-      backgroundColor: '#F0F0F0',
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginBottom: 20,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 4,
-      elevation: 5,
-    },
-    microphoneIcon: {
-      width: 60,
-      height: 60,
-      tintColor: '#333333', // Görsel rengi değiştirilebilir
-    },
-    instructionContainer: {
-      paddingHorizontal: 20,
-      marginTop: 20,
-      alignItems: 'center',
-    },
-    instructionText: {
-      fontSize: 14,
-      color: '#666666',
-      textAlign: 'center',
-      marginBottom: 5,
-    },
-  });
-  export default EmotionAnalysis;
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+  },
+  title: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#333333',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666666',
+    marginBottom: 40,
+  },
+  button: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#007BFF',
+  },
+  buttonRecording: {
+    backgroundColor: '#FF0000',
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  statusText: {
+    marginTop: 20,
+    fontSize: 14,
+    color: '#333333',
+    textAlign: 'center',
+  },
+});
+
+export default EmotionAnalysis;

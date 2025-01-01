@@ -11,6 +11,15 @@ vectorizer = joblib.load("vectorizer.joblib")  # Vektörleştiriciyi yüklüyoru
 @app.route('/')
 def home():
     return "Duygu Analizi API'sine Hoşgeldiniz!"
+@app.route('/analyze-audio', methods=['POST'])
+def analyze_audio():
+    try:
+        # Gelen dosyayı alın ve analiz edin (örnek bir analiz sonucu döndürülüyor)
+        response = {'message': 'Ses dosyası başarıyla alındı ve kaydedildi.', 'emotion': 'Mutlu'}
+        return jsonify(response), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
@@ -35,3 +44,4 @@ def analyze():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
