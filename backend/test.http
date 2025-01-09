@@ -1,6 +1,16 @@
-POST http://127.0.0.1:5000/analyze
+# Ana Sayfa Testi
+GET http://127.0.0.1:5000/
 Content-Type: application/json
 
-{
-  "text": "korkuyorum"
-}
+###
+
+# Ses Dosyası Gönderimi ve Analiz Testi
+POST http://127.0.0.1:5000/analyze-audio
+Content-Type: multipart/form-data
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="audio.mp3"
+Content-Type: audio/mpeg
+
+< ./path/to/audio.mp3
+--boundary--

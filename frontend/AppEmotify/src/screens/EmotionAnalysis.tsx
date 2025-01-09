@@ -5,54 +5,80 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
-  ActivityIndicator,
+  Platform,
 } from 'react-native';
 import AudioRecorderPlayer from 'react-native-audio-recorder-player';
+import RNFS from 'react-native-fs';
+import { useNavigation } from '@react-navigation/native'; // Navigation için
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+type RootStackParamList = {
+  EmotionAnalysis: undefined;
+  ResultScreen: { text: string; emotion: string }; // ResultScreen'e metin ve duygu göndereceğiz
+};
+
+type EmotionAnalysisNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  'EmotionAnalysis'
+>;
 
 const audioRecorderPlayer = new AudioRecorderPlayer();
 
 const EmotionAnalysis = () => {
   const [isRecording, setIsRecording] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState('');
+  const [audioUri, setAudioUri] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string>('');
+  const [text, setText] = useState<string>(''); // Backend'den alınan metni saklamak için
+  const [emotion, setEmotion] = useState<string>(''); // Backend'den alınan duyguyu saklamak için
+  const navigation = useNavigation<EmotionAnalysisNavigationProp>();
 
+  // Ses kaydını başlat
   const startRecording = async () => {
     try {
-      const result = await audioRecorderPlayer.startRecorder();
+      const path = Platform.select({
+        ios: 'audio.m4a',
+        android: `${RNFS.DocumentDirectoryPath}/audio.mp3`,
+      });
+
+      const result = await audioRecorderPlayer.startRecorder(path);
+      setAudioUri(result);
       setIsRecording(true);
-      console.log('Recording started: ', result);
+      setStatusMessage('Ses kaydediliyor...');
     } catch (error) {
-      console.error('Error starting recorder: ', error);
-      Alert.alert('Hata', 'Kayda başlanamadı.');
+      console.error('Kayıt başlatma hatası:', error);
+      Alert.alert('Hata', 'Ses kaydı başlatılamadı.');
     }
   };
 
+  // Ses kaydını durdur
   const stopRecording = async () => {
     try {
       const result = await audioRecorderPlayer.stopRecorder();
       audioRecorderPlayer.removeRecordBackListener();
       setIsRecording(false);
-      console.log('Recording stopped: ', result);
-      if (result) {
-        await uploadAudio(result);
-      }
+      setStatusMessage('Ses kaydı tamamlandı.');
+      setAudioUri(result);
     } catch (error) {
-      console.error('Error stopping recorder: ', error);
-      Alert.alert('Hata', 'Kaydı durdururken bir hata oluştu.');
+      console.error('Kayıt durdurma hatası:', error);
+      Alert.alert('Hata', 'Ses kaydı durdurulamadı.');
     }
   };
 
-  const uploadAudio = async (audioUri: string) => {
+  // Ses dosyasını backend'e gönder
+  const uploadAudio = async () => {
+    if (!audioUri) {
+      Alert.alert('Hata', 'Ses kaydı bulunamadı.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', {
+      uri: audioUri,
+      type: 'audio/mpeg',
+      name: 'audio.mp3',
+    } as any);
+
     try {
-      setIsUploading(true);
-
-      const formData = new FormData();
-      formData.append('file', {
-        uri: audioUri,
-        name: 'audio.mp3',
-        type: 'audio/mpeg',
-      } as any); // `as any` kullanımı `append` hatasını çözer
-
       const response = await fetch('http://10.0.2.2:5000/analyze-audio', {
         method: 'POST',
         headers: {
@@ -62,17 +88,26 @@ const EmotionAnalysis = () => {
       });
 
       const result = await response.json();
-      console.log('Backend Yanıtı: ', result);
+      console.log('Backend Yanıtı:', result);
+
       if (response.ok) {
-        setUploadStatus('Ses dosyası başarıyla yüklendi ve analiz edildi.');
+        setText(result.text); // Backend'den alınan metni kaydet
+        setEmotion(result.emotion); // Backend'den alınan duyguyu kaydet
+        setStatusMessage('Metin ve duygu başarıyla alındı.');
       } else {
-        setUploadStatus('Ses yükleme hatası: ' + result.message || 'Bilinmeyen bir hata oluştu.');
+        setStatusMessage(`Hata: ${result.error}`);
       }
     } catch (error) {
-      console.error('Upload error: ', error);
-      setUploadStatus('Ses yükleme hatası: ' + (error as Error).message);
-    } finally {
-      setIsUploading(false);
+      console.error('Ses yükleme hatası:', error);
+      setStatusMessage('Hata: Ses yüklenemedi.');
+    }
+  };
+
+  const navigateToResult = () => {
+    if (text && emotion) {
+      navigation.navigate('ResultScreen', { text, emotion }); // Metin ve duygu sonucu gönder
+    } else {
+      console.error('Metin veya duygu sonucu eksik!');
     }
   };
 
@@ -81,23 +116,29 @@ const EmotionAnalysis = () => {
       <Text style={styles.title}>Emotify</Text>
       <Text style={styles.subtitle}>Yapay zeka destekli duygu analizi</Text>
 
+      {/* Mikrofon Düğmesi */}
       <TouchableOpacity
-        style={[styles.button, isRecording ? styles.buttonRecording : null]}
+        style={styles.microphoneContainer}
         onPressIn={startRecording}
         onPressOut={stopRecording}
       >
-        {isRecording ? (
-          <ActivityIndicator size="large" color="#FFFFFF" />
-        ) : (
-          <Text style={styles.buttonText}>Kaydı Başlat</Text>
-        )}
+        <View style={styles.microphoneButton} />
       </TouchableOpacity>
 
-      {isUploading ? (
-        <ActivityIndicator size="large" color="#007BFF" />
-      ) : (
-        <Text style={styles.statusText}>{uploadStatus}</Text>
-      )}
+      {/* Durum Mesajı */}
+      <Text style={styles.statusMessage}>{statusMessage}</Text>
+
+      {/* Ses Dosyasını Yükle ve Analiz Yap */}
+      <TouchableOpacity style={styles.button} onPress={uploadAudio}>
+        <Text style={styles.buttonText}>Analiz Yap</Text>
+      </TouchableOpacity>
+
+      {/* ResultScreen'e Yönlendirme */}
+      {text && emotion ? (
+        <TouchableOpacity style={styles.button} onPress={navigateToResult}>
+          <Text style={styles.buttonText}>Sonucu Gör</Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 };
@@ -108,40 +149,54 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    padding: 20,
   },
   title: {
     fontSize: 36,
     fontWeight: 'bold',
-    marginBottom: 20,
     color: '#333333',
+    marginBottom: 10,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#666666',
-    marginBottom: 40,
+    marginBottom: 20,
   },
-  button: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
+  microphoneContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#F0F0F0',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#007BFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+    marginBottom: 20,
   },
-  buttonRecording: {
-    backgroundColor: '#FF0000',
+  microphoneButton: {
+    width: 60,
+    height: 60,
+    backgroundColor: '#007BFF',
+    borderRadius: 30,
+  },
+  statusMessage: {
+    fontSize: 16,
+    color: '#555555',
+    textAlign: 'center',
+    marginTop: 20,
+  },
+  button: {
+    marginTop: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#007BFF',
+    borderRadius: 5,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: '#FFF',
     fontSize: 16,
-    fontWeight: 'bold',
-  },
-  statusText: {
-    marginTop: 20,
-    fontSize: 14,
-    color: '#333333',
-    textAlign: 'center',
   },
 });
 
