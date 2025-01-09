@@ -18,7 +18,7 @@ function App(): React.JSX.Element {
 return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="HomePage">
-        <Stack.Screen name="HomePage" component={HomePage} />
+        <Stack.Screen name="HomePage" component={HomePage} options={{ title: 'Anasayfa' }}/>
         <Stack.Screen name="EmotionAnalysis" component={EmotionAnalysis} options={{ title: 'Duygu Analizi' }} />
         <Stack.Screen name="ResultScreen" component={ResultScreen} options={{ title: 'Sonuç' }} />
       </Stack.Navigator>
